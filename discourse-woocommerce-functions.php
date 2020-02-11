@@ -4,7 +4,7 @@
  * Plugin Name: Discourse WooCommerce Sync
  * Plugin URI: http://github/paviliondev/discourse-woocommerce-sync
  * Description: Syncs WooCommerce memberships with Discourse groups
- * Version: 1.0
+ * Version: 0.2
  * Author: Angus McLeod
  * Author URI: http://thepavilion.io
  */
@@ -14,8 +14,8 @@ defined( 'ABSPATH' ) or die( 'No scripts' );
 use WPDiscourse\Utilities\Utilities as DiscourseUtilities;
 
 $member_group_map = array();
-$member_group_map[] = (object) array('plan_id' => 13, 'group_id' => 45);
-$member_group_map[] = (object) array('plan_id' => 40, 'group_id' => 46);
+$member_group_map[] = (object) array('plan_id' => 13, 'group_id' => 62);
+$member_group_map[] = (object) array('plan_id' => 40, 'group_id' => 65);
 
 const ACTIVE_STATUSES = array('wcm-active');
 
@@ -56,26 +56,30 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 	}
 
 	$external_url = esc_url_raw( $base_url . "/groups/". $group_id ."/members" );
+	
+	$args = array();
 
-  $args = array(
-		'api_key'      => $api_key,
-		'api_username' => $api_username
-	);
-
-  if ($discourse_user_id) {
-    $args['user_id'] = $discourse_user_id;
-  } else {
-    $args['user_emails'] = $user_email;
-  }
+	if ($discourse_user_id) {
+		$args['user_id'] = $discourse_user_id;
+	} else {
+		$args['user_emails'] = $user_email;
+	}
 
   $logger->info( sprintf('Sending %s request to %s with %s', $action, $external_url, http_build_query($args)) );
 
 	$external_url = add_query_arg($args, $external_url);
+	
+	$headers = array(
+		'Content-type' => 'application/json',
+		'Api-Key'      => $api_key,
+		'Api-Username' => $api_username
+	);
 
 	$response = wp_remote_request($external_url,
-     array(
-    	 'method' => $action
-     )
+		array(
+    	 'method' => $action,
+			 'headers' => $headers
+    )
 	);
 
 	$logger->info( sprintf( 'Response from Discourse: %s %s' ,
