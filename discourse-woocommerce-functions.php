@@ -43,11 +43,10 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 	  return new \WP_Error( 'discourse_configuration_error', 'The WP Discourse plugin has not been properly configured.' );
 	}
 	
-	$discourse_user_id = get_user_meta($user_id, 'discourse_sso_user_id', true);
 	$user_info = get_userdata($user_id);
-	$user_email = $user_info->user_email;
+	$username = $user_info->user_nicename;
 
-	$logger->info( sprintf('%s membership of %s is %s' , $user_email, $plan_name, $status ) );
+	$logger->info( sprintf('%s membership of %s is %s' , $username, $plan_name, $status ) );
 
 	if (in_array($status, ACTIVE_STATUSES)) {
 		$action = 'PUT';
@@ -57,34 +56,28 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 
 	$external_url = esc_url_raw( $base_url . "/groups/". $group_id ."/members" );
 	
-	$args = array();
-
-	if ($discourse_user_id) {
-		$args['user_id'] = $discourse_user_id;
-	} else {
-		$args['user_emails'] = $user_email;
-	}
-
-  $logger->info( sprintf('Sending %s request to %s with %s', $action, $external_url, http_build_query($args)) );
-
-	$external_url = add_query_arg($args, $external_url);
+	$body = array(
+		'usernames' => $username
+	);
 	
 	$headers = array(
 		'Content-type' => 'application/json',
+		'Accept'			 => 'application/json',
 		'Api-Key'      => $api_key,
-		'Api-Username' => $api_username
+		'Api-Username' => $api_username,
 	);
+	
+	$logger->info( sprintf('Sending %s request to %s with headers %s and body %s', $action, $external_url, json_encode($headers), json_encode($body)) );
 
 	$response = wp_remote_request($external_url,
 		array(
-    	 'method' => $action,
-			 'headers' => $headers
+    	 'method' 	=> $action,
+			 'headers' 	=> $headers,
+			 'body'    	=> json_encode($body)
     )
 	);
 
-	$logger->info( sprintf( 'Response from Discourse: %s %s' ,
-	  wp_remote_retrieve_response_code($response),
-	  wp_remote_retrieve_response_message($response) ) );
+	$logger->info( sprintf( 'Response from Discourse: %s %s' , wp_remote_retrieve_response_code($response), wp_remote_retrieve_response_message($response) ) );
 
 	if ( ! DiscourseUtilities::validate( $response ) ) {
 		return new \WP_Error( 'discourse_response_error', 'There has been an error in retrieving the user data from Discourse.' );
