@@ -14,8 +14,8 @@ defined( 'ABSPATH' ) or die( 'No scripts' );
 use WPDiscourse\Utilities\Utilities as DiscourseUtilities;
 
 $member_group_map = array();
-$member_group_map[] = (object) array('plan_id' => 13, 'group_id' => 45);
-$member_group_map[] = (object) array('plan_id' => 40, 'group_id' => 46);
+$member_group_map[] = (object) array('plan_id' => 13, 'group_id' => 62);
+$member_group_map[] = (object) array('plan_id' => 40, 'group_id' => 65);
 
 const ACTIVE_STATUSES = array('wcm-active');
 
