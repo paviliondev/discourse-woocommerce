@@ -42,11 +42,6 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 	if ( empty( $base_url ) || empty( $api_key ) || empty( $api_username ) ) {
 	  return new \WP_Error( 'discourse_configuration_error', 'The WP Discourse plugin has not been properly configured.' );
 	}
-	
-	$user_info = get_userdata($user_id);
-	$username = $user_info->user_nicename;
-
-	$logger->info( sprintf('%s membership of %s is %s' , $username, $plan_name, $status ) );
 
 	if (in_array($status, ACTIVE_STATUSES)) {
 		$action = 'PUT';
@@ -56,9 +51,17 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 
 	$external_url = esc_url_raw( $base_url . "/groups/". $group_id ."/members" );
 	
-	$body = array(
-		'usernames' => $username
-	);
+	$user_info = get_userdata($user_id);
+	$discourse_user_id = $user_info->user_id;
+	$user_email = $user_info->user_email;
+	
+	$body = array();
+	
+	if ($discourse_user_id) {
+		$body['user_id'] = $discourse_user_id;
+	} else {
+		$body['user_emails'] = $user_email;
+	}
 	
 	$headers = array(
 		'Content-type' => 'application/json',
