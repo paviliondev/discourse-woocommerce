@@ -108,7 +108,15 @@ function handle_wc_membership_saved($membership_plan, $args) {
 	}
 };
 
+function handle_wc_membership_status_change($user_membership, $old_status, $new_status) {
+	$logger = wc_get_logger();
+	$logger->info( sprintf('Running handle_wc_membership_status_change %s, %s, %s', json_encode($user_membership), $old_status, $new_status ) );
+	return null;
+}
+
 add_action('wc_memberships_user_membership_saved', 'handle_wc_membership_saved', 10, 2);
+
+add_action('wc_memberships_user_membership_status_changed', 'handle_wc_membership_status_change', 10, 3);
 
 function full_wc_membership_sync() {
 	$allusers = get_users();
