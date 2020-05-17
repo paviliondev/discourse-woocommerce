@@ -4,7 +4,7 @@
  * Plugin Name: Discourse WooCommerce Sync
  * Plugin URI: http://github/paviliondev/discourse-woocommerce-sync
  * Description: Syncs WooCommerce memberships with Discourse groups
- * Version: 0.2.4
+ * Version: 0.2.5
  * Author: Angus McLeod
  * Author URI: http://thepavilion.io
  */
@@ -18,6 +18,7 @@ $member_group_map[] = (object) array('plan_id' => 61128, 'group_id' => 62);
 $member_group_map[] = (object) array('plan_id' => 80976, 'group_id' => 65);
 
 const ACTIVE_STATUSES = array('wcm-active');
+const INACTIVE_STATUSES = array('wcm-expired', 'wcm-cancelled');
 
 function get_discourse_group_id($plan_id) {
 	global $member_group_map;
@@ -47,8 +48,10 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 
 	if (in_array($status, ACTIVE_STATUSES)) {
 		$action = 'PUT';
-	} else {
+	} elseif (in_array($status, INACTIVE_STATUSES)) {
 		$action = 'DELETE';
+	} else {
+		return;
 	}
 
 	$external_url = esc_url_raw( $base_url . "/groups/". $group_id ."/members" );
