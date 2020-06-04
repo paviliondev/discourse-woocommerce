@@ -1,0 +1,1 @@
+See further: https://meta.discourse.org/t/sync-woocommerce-memberships-with-discourse-groups-when-discourse-is-the-sso-provider/118485
