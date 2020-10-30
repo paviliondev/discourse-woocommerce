@@ -17,8 +17,8 @@ $member_group_map = array();
 $member_group_map[] = (object) array('plan_id' => 61128, 'group_id' => 62);
 $member_group_map[] = (object) array('plan_id' => 80976, 'group_id' => 65);
 
-const ACTIVE_STATUSES = array('wcm-active');
-const INACTIVE_STATUSES = array('wcm-expired', 'wcm-cancelled');
+$product_group_map = array();
+$product_group_map[] = (object) array('product_ids' => [74], 'group_id' => 62);
 
 function get_discourse_group_id($plan_id) {
 	global $member_group_map;
@@ -33,7 +33,22 @@ function get_discourse_group_id($plan_id) {
 	return $group_id;
 }
 
-function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, $group_id) {
+const ACTIVE_STATUSES = array('wcm-active');
+const INACTIVE_STATUSES = array('wcm-expired', 'wcm-cancelled');
+
+function determine_plan_group_action($status) {
+	$action = null;
+	
+	if (in_array($status, ACTIVE_STATUSES)) {
+		$action = 'PUT';
+	} elseif (in_array($status, INACTIVE_STATUSES)) {
+		$action = 'DELETE';
+	}
+	
+	return $action;
+}
+
+function update_discourse_group_access($user_id, $action, $group_id) {
 	$options = DiscourseUtilities::get_options();
 	$base_url = $options['url'];
 	$api_key = $options['api-key'];
@@ -44,15 +59,7 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 	  return new \WP_Error( 'discourse_configuration_error', 'The WP Discourse plugin has not been properly configured.' );
 	}
 	
-	$logger->info( sprintf('Updating discourse group access %s %s %s %s %s', $user_id, $plan_id, $plan_name, $status, $group_id) );
-
-	if (in_array($status, ACTIVE_STATUSES)) {
-		$action = 'PUT';
-	} elseif (in_array($status, INACTIVE_STATUSES)) {
-		$action = 'DELETE';
-	} else {
-		return;
-	}
+	$logger->info( sprintf('Updating discourse group access %s %s %s', $user_id, $action, $group_id) );
 
 	$external_url = esc_url_raw( $base_url . "/groups/". $group_id ."/members" );
 	
@@ -94,7 +101,6 @@ function update_discourse_group_access($user_id, $plan_id, $plan_name, $status, 
 
 function handle_wc_membership_saved($membership_plan, $args) {
 	$logger = wc_get_logger();
-
 	$logger->info( sprintf('Running handle_wc_membership_saved %s, %s, %s', $args['user_id'], $args['user_membership_id'], $args['is_update'] ) );
 
 	$user_id = $args['user_id'];
@@ -105,9 +111,9 @@ function handle_wc_membership_saved($membership_plan, $args) {
 	$group_id = get_discourse_group_id($plan_id);
 
 	if ($membership && $group_id && $is_update) {
-		$plan_name = $membership_plan->name;
-		$status = $membership->status;
-		update_discourse_group_access($user_id, $plan_id, $plan_name, $status, $group_id);
+		$action = determine_plan_group_action($membership->status);
+	
+		update_discourse_group_access($user_id, $action, $group_id);
 	}
 };
 
@@ -139,11 +145,9 @@ function full_wc_membership_sync() {
 			$group_id = get_discourse_group_id($plan_id);
 
 			if ($membership && $group_id) {
-				$plan_name = $membership_plan->name;
-				$status = $membership->status;
 				$logger->info( sprintf('Updating group access of %s', $user->user_login) );
-
-				update_discourse_group_access($user_id, $plan_id, $plan_name, $status, $group_id);
+				$action = determine_plan_group_action($membership->status);
+				update_discourse_group_access($user_id, $action, $group_id);
 
 				$logger->info( sprintf('Sleeping for 5 seconds') );
 				sleep(5);
@@ -153,3 +157,35 @@ function full_wc_membership_sync() {
 }
 
 add_action('run_full_wc_membership_sync', 'full_wc_membership_sync');
+
+// Handle single product purchases
+
+function handle_wc_membership_order_status_change( $order_id, $old_status, $new_status ) {
+	global $product_group_map;
+	$logger = wc_get_logger();
+	
+	if ($new_status == "completed") {
+		$order = new WC_Order($order_id);
+		$items = $order->get_items();
+		
+		$logger->info( sprintf('Order items %s', json_encode($items) ) );
+		
+		foreach ( $items as $item_id => $item ) {
+			$product_id = $item->get_product_id();
+			
+			foreach($product_group_map as $struct) {
+		    if (in_array($product_id, $struct->product_ids)) {
+					$group_id = $struct->group_id;
+					$user_id = $order->user_id;
+					$action = "PUT";
+					
+					$logger->info( sprintf('Running update_discourse_group_access %s, %s, %s', $user_id, $action, $group_id ) );
+					
+					update_discourse_group_access($user_id, $action, $group_id);
+		    }
+			}
+		}
+  }
+}
+
+add_action('woocommerce_order_status_changed', 'handle_wc_membership_order_status_change', 10, 3);
