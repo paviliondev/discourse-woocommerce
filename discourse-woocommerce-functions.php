@@ -106,11 +106,10 @@ function handle_wc_membership_saved($membership_plan, $args) {
 	$user_id = $args['user_id'];
 	$membership = wc_memberships_get_user_membership($args['user_membership_id']);
 	$plan_id = $membership->plan->id;
-	$is_update = $args['is_update'];
 	
 	$group_id = get_discourse_group_id($plan_id);
 
-	if ($membership && $group_id && $is_update) {
+	if ($membership && $group_id) {
 		$action = determine_plan_group_action($membership->status);
 	
 		update_discourse_group_access($user_id, $action, $group_id);
