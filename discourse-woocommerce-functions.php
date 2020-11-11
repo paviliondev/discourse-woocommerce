@@ -4,7 +4,7 @@
  * Plugin Name: Discourse WooCommerce Sync
  * Plugin URI: http://github/paviliondev/discourse-woocommerce-sync
  * Description: Syncs WooCommerce memberships with Discourse groups
- * Version: 0.3.0
+ * Version: 0.3.1
  * Author: Angus McLeod
  * Author URI: http://thepavilion.io
  */
@@ -127,6 +127,7 @@ add_action('wc_memberships_user_membership_saved', 'handle_wc_membership_saved',
 add_action('wc_memberships_user_membership_status_changed', 'handle_wc_membership_status_change', 10, 3);
 
 function full_wc_membership_sync() {
+	global $product_group_map;
 	$allusers = get_users();
 	$logger = wc_get_logger();
 
@@ -144,12 +145,29 @@ function full_wc_membership_sync() {
 			$group_id = get_discourse_group_id($plan_id);
 
 			if ($membership && $group_id) {
-				$logger->info( sprintf('Updating group access of %s', $user->user_login) );
+				$logger->info( sprintf('Updating group access of %s: %s', $user->user_login, $group_id) );
 				$action = determine_plan_group_action($membership->status);
 				update_discourse_group_access($user_id, $action, $group_id);
 
-				$logger->info( sprintf('Sleeping for 5 seconds') );
-				sleep(5);
+				$logger->info( sprintf('Sleeping for 4 seconds') );
+				sleep(4);
+			}
+		}
+						
+		foreach ( $product_group_map as $item ) {
+						
+			foreach ( $item->product_ids as $product_id ) {
+								
+				$has_bought = wc_customer_bought_product( null, $user_id, $product_id );
+				$group_id = $item->group_id;
+				$action = "PUT";
+				
+				$logger->info( sprintf('Updating group access of %s: %s', $user->user_login, $group_id) );
+				
+				update_discourse_group_access($user_id, $action, $group_id);
+				
+				$logger->info( sprintf('Sleeping for 4 seconds') );
+				sleep(4);
 			}
 		}
 	}
