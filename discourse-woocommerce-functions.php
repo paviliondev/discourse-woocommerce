@@ -4,7 +4,7 @@
  * Plugin Name: Discourse WooCommerce Sync
  * Plugin URI: http://github/paviliondev/discourse-woocommerce-sync
  * Description: Syncs WooCommerce memberships with Discourse groups
- * Version: 0.3.1
+ * Version: 0.3.2
  * Author: Angus McLeod
  * Author URI: http://thepavilion.io
  */
