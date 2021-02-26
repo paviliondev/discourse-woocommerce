@@ -15,7 +15,7 @@ use WPDiscourse\Utilities\Utilities as DiscourseUtilities;
 
 $member_group_map = array();
 $member_group_map[] = (object) array('plan_id' => 61128, 'group_id' => 62);
-$member_group_map[] = (object) array('plan_id' => 80976, 'group_id' => 65);
+$member_group_map[] = (object) array('plan_id' => 91699, 'group_id' => 65);
 
 $product_group_map = array();
 $product_group_map[] = (object) array('product_ids' => [27680,29439,29449,31904,31926,31928,27679], 'group_id' => 66);
